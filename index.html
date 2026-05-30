@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Brexel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #060d1a;
+      --surface: #0d1f35;
+      --border: #1a3a5c;
+      --accent: #38bdf8;
+      --accent2: #0ea5e9;
+      --success: #10b981;
+      --error: #f43f5e;
+      --warning: #f59e0b;
+      --text: #f0f6ff;
+      --muted: #64748b;
+      --card-bg: rgba(13, 31, 53, 0.8);
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      overflow: hidden;
+    }
+
+    /* Animated background */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 20% 10%, rgba(56,189,248,0.08) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 80% 90%, rgba(14,165,233,0.06) 0%, transparent 60%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Grid lines */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(56,189,248,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(56,189,248,0.03) 1px, transparent 1px);
+      background-size: 60px 60px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .wrapper {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 420px;
+    }
+
+    /* Logo */
+    .logo {
+      text-align: center;
+      margin-bottom: 32px;
+      animation: fadeDown 0.5s ease both;
+    }
+
+    .logo-text {
+      font-family: 'Syne', sans-serif;
+      font-size: 38px;
+      font-weight: 800;
+      letter-spacing: 6px;
+      color: var(--accent);
+      text-transform: uppercase;
+      position: relative;
+      display: inline-block;
+    }
+
+    .logo-text::after {
+      content: '';
+      position: absolute;
+      bottom: -4px;
+      left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    }
+
+    .logo-sub {
+      font-size: 11px;
+      letter-spacing: 3px;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-top: 8px;
+    }
+
+    /* Card */
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 40px 32px;
+      backdrop-filter: blur(20px);
+      animation: fadeUp 0.5s ease 0.1s both;
+      box-shadow: 0 0 60px rgba(56,189,248,0.05), 0 20px 60px rgba(0,0,0,0.4);
+    }
+
+    /* Icon box */
+    .icon-box {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 24px;
+      font-size: 30px;
+    }
+
+    .icon-box.loading  { background: rgba(56,189,248,0.12); border: 1px solid rgba(56,189,248,0.3); }
+    .icon-box.success  { background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.3); }
+    .icon-box.error    { background: rgba(244,63,94,0.12);  border: 1px solid rgba(244,63,94,0.3); }
+    .icon-box.form     { background: rgba(56,189,248,0.12); border: 1px solid rgba(56,189,248,0.3); }
+
+    /* Spinner */
+    .spinner {
+      width: 32px; height: 32px;
+      border: 3px solid rgba(56,189,248,0.2);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: 22px;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 10px;
+      color: var(--text);
+    }
+
+    p {
+      font-size: 14px;
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.7;
+      margin-bottom: 20px;
+    }
+
+    p strong { color: var(--accent); font-weight: 500; }
+
+    /* Input */
+    .input-group {
+      margin-bottom: 14px;
+    }
+
+    label {
+      display: block;
+      font-size: 11px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    input[type="password"], input[type="text"], input[type="email"] {
+      width: 100%;
+      background: rgba(6,13,26,0.6);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 13px 16px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(56,189,248,0.1);
+    }
+
+    .strength-bar {
+      height: 3px;
+      background: var(--border);
+      border-radius: 2px;
+      margin-top: 8px;
+      overflow: hidden;
+    }
+
+    .strength-fill {
+      height: 100%;
+      border-radius: 2px;
+      transition: width 0.3s, background 0.3s;
+      width: 0%;
+    }
+
+    .strength-label {
+      font-size: 11px;
+      margin-top: 4px;
+      text-align: right;
+    }
+
+    /* Button */
+    .btn {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 12px;
+      font-family: 'Syne', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-top: 8px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent2), var(--accent));
+      color: #060d1a;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(56,189,248,0.3);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .btn-ghost {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      margin-top: 10px;
+    }
+
+    .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* Error message */
+    .msg {
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-size: 13px;
+      margin-bottom: 16px;
+      display: none;
+    }
+
+    .msg.error   { background: rgba(244,63,94,0.1);  border: 1px solid rgba(244,63,94,0.3);  color: #fda4af; }
+    .msg.success { background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3); color: #6ee7b7; }
+    .msg.show { display: block; }
+
+    /* Divider */
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 20px 0 4px;
+    }
+    .divider::before, .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+    .divider span { font-size: 11px; color: var(--muted); letter-spacing: 1px; }
+
+    /* Deep link hint */
+    .deep-link-hint {
+      margin-top: 20px;
+      padding: 14px;
+      background: rgba(56,189,248,0.05);
+      border: 1px solid rgba(56,189,248,0.15);
+      border-radius: 12px;
+      text-align: center;
+    }
+
+    .deep-link-hint p { margin: 0; font-size: 13px; }
+
+    /* Animations */
+    @keyframes fadeUp   { from { opacity:0; transform: translateY(20px); } to { opacity:1; transform: translateY(0); } }
+    @keyframes fadeDown { from { opacity:0; transform: translateY(-10px); } to { opacity:1; transform: translateY(0); } }
+    @keyframes spin     { to { transform: rotate(360deg); } }
+    @keyframes pulse    { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
+
+    /* Screens */
+    .screen { display: none; }
+    .screen.active { display: block; }
+
+    /* Loading dots */
+    .dots span {
+      display: inline-block;
+      animation: pulse 1.2s ease infinite;
+    }
+    .dots span:nth-child(2) { animation-delay: 0.2s; }
+    .dots span:nth-child(3) { animation-delay: 0.4s; }
+  </style>
+</head>
+<body>
+
+<div class="wrapper">
+  <div class="logo">
+    <div class="logo-text">Brexel</div>
+    <div class="logo-sub">Seguridad y conectividad</div>
+  </div>
+
+  <div class="card">
+
+    <!-- ░░ SCREEN: Procesando ░░ -->
+    <div class="screen active" id="screen-loading">
+      <div class="icon-box loading">
+        <div class="spinner"></div>
+      </div>
+      <h1>Procesando<span class="dots"><span>.</span><span>.</span><span>.</span></span></h1>
+      <p>Un momento, estamos verificando tu solicitud.</p>
+    </div>
+
+    <!-- ░░ SCREEN: Verificación exitosa ░░ -->
+    <div class="screen" id="screen-verify-ok">
+      <div class="icon-box success">✓</div>
+      <h1>¡Email verificado!</h1>
+      <p>Tu correo fue confirmado correctamente.<br>Ya podés volver a la app y finalizar tu registro.</p>
+      <button class="btn btn-primary" onclick="abrirApp()">VOLVER A BREXEL</button>
+      <div class="deep-link-hint">
+        <p>Si el botón no abre la app, volvé manualmente a la pantalla de registro.</p>
+      </div>
+    </div>
+
+    <!-- ░░ SCREEN: Formulario nueva contraseña ░░ -->
+    <div class="screen" id="screen-reset-form">
+      <div class="icon-box form">🔑</div>
+      <h1>Nueva contraseña</h1>
+      <p>Ingresá tu nueva contraseña para<br><strong id="reset-email-label"></strong></p>
+
+      <div class="msg" id="reset-msg"></div>
+
+      <div class="input-group">
+        <label>Nueva contraseña</label>
+        <input type="password" id="pass1" placeholder="Mínimo 6 caracteres" oninput="checkStrength()" />
+        <div class="strength-bar"><div class="strength-fill" id="strength-fill"></div></div>
+        <div class="strength-label" id="strength-label" style="color: var(--muted);"></div>
+      </div>
+
+      <div class="input-group">
+        <label>Repetir contraseña</label>
+        <input type="password" id="pass2" placeholder="Repetí la contraseña" />
+      </div>
+
+      <button class="btn btn-primary" id="btn-reset" onclick="guardarPassword()">GUARDAR CONTRASEÑA</button>
+    </div>
+
+    <!-- ░░ SCREEN: Reset exitoso ░░ -->
+    <div class="screen" id="screen-reset-ok">
+      <div class="icon-box success">✓</div>
+      <h1>¡Contraseña actualizada!</h1>
+      <p>Tu contraseña fue cambiada con éxito.<br>Podés iniciar sesión desde la app con tu nueva contraseña.</p>
+      <button class="btn btn-primary" onclick="abrirApp()">ABRIR BREXEL</button>
+      <button class="btn btn-ghost" onclick="window.close()">Cerrar esta ventana</button>
+    </div>
+
+    <!-- ░░ SCREEN: Error ░░ -->
+    <div class="screen" id="screen-error">
+      <div class="icon-box error">✕</div>
+      <h1>Enlace inválido</h1>
+      <p id="error-detail">El enlace expiró o no es válido.<br>Pedí uno nuevo desde la app.</p>
+      <button class="btn btn-ghost" onclick="window.close()">Cerrar</button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // ─── CONFIGURACIÓN ───────────────────────────────────────────────
+  const SUPABASE_URL      = 'https://kqittlmnkvdaaualuswr.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtxaXR0bG1ua3ZkYWF1YWx1c3dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxODA0NjMsImV4cCI6MjA5MDc1NjQ2M30.cmWYhVvcgaPYo3WfYUQb8hy3-Cp24bLvV0B6S1KMhx4';
+  const DEEP_LINK         = 'brexel://RegistroScreen?emailVerificado=true';
+  const DEEP_LINK_LOGIN   = 'brexel://LoginScreen';
+
+  const { createClient } = supabase;
+  const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  // ─── UTILIDADES ──────────────────────────────────────────────────
+  function show(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+
+  function showError(msg) {
+    document.getElementById('error-detail').innerHTML = msg;
+    show('screen-error');
+  }
+
+  function abrirApp() {
+    const url = window.location.hash.includes('type=recovery') ? DEEP_LINK_LOGIN : DEEP_LINK;
+    window.location.href = url;
+    setTimeout(() => {}, 2000);
+  }
+
+  // ─── LEER PARÁMETROS DE LA URL ───────────────────────────────────
+  // Supabase pone los tokens en el HASH (#access_token=...&type=...)
+  // El GAS pone los params en el QUERY STRING (?action=verify&email=...)
+  function getHashParams() {
+    const hash = window.location.hash.substring(1);
+    return Object.fromEntries(new URLSearchParams(hash));
+  }
+
+  function getQueryParams() {
+    return Object.fromEntries(new URLSearchParams(window.location.search));
+  }
+
+  // ─── VERIFICACIÓN DE EMAIL (desde GAS link) ──────────────────────
+  async function procesarVerificacion(email) {
+    try {
+      const { error } = await sb.from('verificaciones_email').upsert(
+        { email: email.toLowerCase(), verificado: true, updated_at: new Date().toISOString() },
+        { onConflict: 'email' }
+      );
+      if (error) throw error;
+      show('screen-verify-ok');
+    } catch (err) {
+      showError('No se pudo confirmar el email.<br><small>' + err.message + '</small>');
+    }
+  }
+
+  // ─── RESET DE CONTRASEÑA (desde Supabase Auth link) ─────────────
+  // Supabase manda el link de reset con hash: #access_token=...&type=recovery
+  async function procesarReset(accessToken, email) {
+    // Seteamos la sesión con el token que manda Supabase
+    const { error: sessionError } = await sb.auth.setSession({
+      access_token: accessToken,
+      refresh_token: '' // no lo necesitamos para updateUser
+    });
+
+    document.getElementById('reset-email-label').textContent = email || '';
+    show('screen-reset-form');
+  }
+
+  async function guardarPassword() {
+    const p1 = document.getElementById('pass1').value;
+    const p2 = document.getElementById('pass2').value;
+    const msg = document.getElementById('reset-msg');
+    const btn = document.getElementById('btn-reset');
+
+    msg.className = 'msg';
+    msg.textContent = '';
+
+    if (p1.length < 6) {
+      msg.textContent = 'La contraseña debe tener al menos 6 caracteres.';
+      msg.className = 'msg error show'; return;
+    }
+    if (p1 !== p2) {
+      msg.textContent = 'Las contraseñas no coinciden.';
+      msg.className = 'msg error show'; return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'GUARDANDO...';
+
+    try {
+      const { error } = await sb.auth.updateUser({ password: p1 });
+      if (error) throw error;
+      show('screen-reset-ok');
+    } catch (err) {
+      msg.textContent = 'Error: ' + err.message;
+      msg.className = 'msg error show';
+      btn.disabled = false;
+      btn.textContent = 'GUARDAR CONTRASEÑA';
+    }
+  }
+
+  // ─── INDICADOR DE FUERZA ─────────────────────────────────────────
+  function checkStrength() {
+    const p = document.getElementById('pass1').value;
+    const fill = document.getElementById('strength-fill');
+    const label = document.getElementById('strength-label');
+    let score = 0;
+    if (p.length >= 6)  score++;
+    if (p.length >= 10) score++;
+    if (/[A-Z]/.test(p)) score++;
+    if (/[0-9]/.test(p)) score++;
+    if (/[^A-Za-z0-9]/.test(p)) score++;
+
+    const levels = [
+      { w: '0%',   color: 'transparent', text: '' },
+      { w: '25%',  color: '#f43f5e',     text: 'Muy débil' },
+      { w: '50%',  color: '#f59e0b',     text: 'Débil' },
+      { w: '75%',  color: '#38bdf8',     text: 'Buena' },
+      { w: '90%',  color: '#10b981',     text: 'Fuerte' },
+      { w: '100%', color: '#10b981',     text: '¡Excelente!' },
+    ];
+    const l = levels[score] || levels[0];
+    fill.style.width = l.w;
+    fill.style.background = l.color;
+    label.textContent = l.text;
+    label.style.color = l.color;
+  }
+
+  // ─── ROUTER PRINCIPAL ────────────────────────────────────────────
+  async function init() {
+    const hash  = getHashParams();
+    const query = getQueryParams();
+
+    // CASO 1: Supabase Auth manda el token de recovery en el hash
+    // URL: https://tuapp.vercel.app/#access_token=XXX&type=recovery
+    if (hash.type === 'recovery' && hash.access_token) {
+      await procesarReset(hash.access_token, hash.email || '');
+      return;
+    }
+
+    // CASO 2: El GAS manda el link de verificación con query params
+    // URL: https://tuapp.vercel.app/?action=verify&email=xxx@xxx.com
+    if (query.action === 'verify' && query.email) {
+      await procesarVerificacion(query.email);
+      return;
+    }
+
+    // CASO 3: URL inválida o sin parámetros
+    showError('No se encontraron parámetros válidos.<br>Usá el link del correo que te enviamos.');
+  }
+
+  init();
+</script>
+</body>
+</html>
