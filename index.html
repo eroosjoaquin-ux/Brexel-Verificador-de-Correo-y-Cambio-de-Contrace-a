@@ -388,13 +388,15 @@
 
 <script>
   // ─── CONFIGURACIÓN ───────────────────────────────────────────────
-  const SUPABASE_URL      = 'https://kqittlmnkvdaaualuswr.supabase.co';
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtxaXR0bG1ua3ZkYWF1YWx1c3dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxODA0NjMsImV4cCI6MjA5MDc1NjQ2M30.cmWYhVvcgaPYo3WfYUQb8hy3-Cp24bLvV0B6S1KMhx4';
+  const SUPABASE_URL      = 'https://manmade-underwire-reprogram.ngrok-free.dev';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzkzMjk4OTc4LCJleHAiOjE5NTA5Nzg5Nzh9.yiBCCbEc54yCAhzBbGsoJjxhirXA-q9-IN1cmWe4e1E';
   const DEEP_LINK         = 'brexel://RegistroScreen?emailVerificado=true';
   const DEEP_LINK_LOGIN   = 'brexel://LoginScreen';
 
   const { createClient } = supabase;
-  const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: { headers: { 'ngrok-skip-browser-warning': 'true' } }
+  });
 
   // ─── UTILIDADES ──────────────────────────────────────────────────
   function show(id) {
@@ -441,11 +443,11 @@
 
   // ─── RESET DE CONTRASEÑA (desde Supabase Auth link) ─────────────
   // Supabase manda el link de reset con hash: #access_token=...&type=recovery
-  async function procesarReset(accessToken, email) {
+  async function procesarReset(accessToken, refreshToken, email) {
     // Seteamos la sesión con el token que manda Supabase
     const { error: sessionError } = await sb.auth.setSession({
       access_token: accessToken,
-      refresh_token: '' // no lo necesitamos para updateUser
+      refresh_token: refreshToken || ''
     });
 
     document.getElementById('reset-email-label').textContent = email || '';
@@ -520,7 +522,7 @@
     // CASO 1: Supabase Auth manda el token de recovery en el hash
     // URL: https://tuapp.vercel.app/#access_token=XXX&type=recovery
     if (hash.type === 'recovery' && hash.access_token) {
-      await procesarReset(hash.access_token, hash.email || '');
+      await procesarReset(hash.access_token, hash.refresh_token || '', hash.email || '');
       return;
     }
 
