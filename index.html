@@ -410,7 +410,8 @@
   }
 
   function abrirApp() {
-    const url = window.location.hash.includes('type=recovery') ? DEEP_LINK_LOGIN : DEEP_LINK;
+    const esRec = window.location.hash.includes('type=recovery') || window.location.search.includes('type=recovery') || window._esRecovery;
+    const url = esRec ? DEEP_LINK_LOGIN : DEEP_LINK;
     window.location.href = url;
     setTimeout(() => {}, 2000);
   }
@@ -451,6 +452,19 @@
     });
 
     document.getElementById('reset-email-label').textContent = email || '';
+    show('screen-reset-form');
+  }
+
+  // Link nuevo del mail: https://...netlify.app/?token_hash=XXX&type=recovery
+  // La página valida el código contra tu Supabase y muestra el formulario.
+  async function procesarResetCodigo(tokenHash) {
+    window._esRecovery = true;
+    const { data, error } = await sb.auth.verifyOtp({ token_hash: tokenHash, type: 'recovery' });
+    if (error || !data || !data.session) {
+      showError('Este link ya se usó o venció.<br><small>Pedí uno nuevo desde "Olvidé mi contraseña" en la app.</small>');
+      return;
+    }
+    document.getElementById('reset-email-label').textContent = (data.user && data.user.email) || '';
     show('screen-reset-form');
   }
 
@@ -523,6 +537,12 @@
     // URL: https://tuapp.vercel.app/#access_token=XXX&type=recovery
     if (hash.type === 'recovery' && hash.access_token) {
       await procesarReset(hash.access_token, hash.refresh_token || '', hash.email || '');
+      return;
+    }
+
+    // CASO 1b: link del mail con código (?token_hash=...&type=recovery)
+    if (query.type === 'recovery' && query.token_hash) {
+      await procesarResetCodigo(query.token_hash);
       return;
     }
 
